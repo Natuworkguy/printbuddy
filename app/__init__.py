@@ -163,8 +163,8 @@ class App:
             try:
                 data = self.ser.readline().decode('utf-8').strip()
             except serial.SerialException as e:  
-                print(f"{Fore.RED}ERROR: Serial communication error. {e}{Style.RESET_ALL}")
-                self.run_loop = False 
+                tkinter.messagebox.showerror("Error", f"ERROR: Serial communication error. {e}")
+                self.run_loop = False
 
                 break
             except UnicodeDecodeError as e:
