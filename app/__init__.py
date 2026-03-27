@@ -133,7 +133,7 @@ class App:
         self.send_command_raw(self.command)
 
     def send_command_raw(self, command: Optional[str]) -> None:
-        if self.command is None:
+        if command is None:
             return
 
         if self.ser is None:
@@ -142,7 +142,7 @@ class App:
         self.command_input.delete(0, tk.END)
 
         try:
-            self.ser.write(bytes(self.command + '\n', 'utf-8'))
+            self.ser.write(bytes(command + '\n', 'utf-8'))
         except serial.SerialException as e:
             tkinter.messagebox.showerror("Error", f"Unable to write to serial: {e}")
 
