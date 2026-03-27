@@ -71,6 +71,7 @@ class App:
             self.ser = serial.Serial(port, 115200, timeout=1)  
         except serial.SerialException as e:
             tkinter.messagebox.showerror("Error", f"Could not open serial port: {e}")
+            return
 
         self.connection_input.config(state="disabled")
         self.connection_submit.config(state="disabled")
