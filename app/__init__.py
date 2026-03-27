@@ -54,7 +54,7 @@ class App:
 
         self.command_input = ttk.Entry(self.console_section, state="disabled")
         self.command_input.bind("<Return>", self.send_command)
-        self.command_input.bind("<Left>", self.restore_command)
+        self.command_input.bind("<Up>", self.restore_command)
         self.command_input.pack(padx=5, pady=5)
 
         self.send_command_button = ttk.Button(self.console_section, text="Send", command=self.send_command, state="disabled")
