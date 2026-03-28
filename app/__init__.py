@@ -48,21 +48,26 @@ class App:
         self.connection_section_separator = ttk.Separator(self.connection_section)
         self.connection_section_separator.pack(padx=5, pady=5, expand=True, fill="both")
 
+        self.connection_submit_action = lambda event = None: self.open_connection(self.connection_input.get())
+
         self.connection_input = ttk.Entry(self.connection_section)
+        self.connection_input.bind("<Return>", self.connection_submit_action)
         self.connection_input.pack(padx=5, pady=5)
 
-        self.connection_submit = ttk.Button(self.connection_section, text="Connect", command=lambda: self.open_connection(self.connection_input.get()))
+        self.connection_submit = ttk.Button(self.connection_section, text="Connect", command=self.connection_submit_action)
         self.connection_submit.pack(padx=5, pady=5)
 
         self.console_section = ttk.LabelFrame(self.root, text="Console")
         self.console_section.pack(padx=5, pady=5)
 
+        self.sent_command_action = lambda event = None: self.send_command(self.command_input.get())
+
         self.command_input = ttk.Entry(self.console_section, state="disabled")
-        self.command_input.bind("<Return>", self.send_command)
+        self.command_input.bind("<Return>", self.sent_command_action)
         self.command_input.bind("<Up>", self.restore_command)
         self.command_input.pack(padx=5, pady=5)
 
-        self.send_command_button = ttk.Button(self.console_section, text="Send", command=self.send_command, state="disabled")
+        self.send_command_button = ttk.Button(self.console_section, text="Send", command=self.sent_command_action, state="disabled")
         self.send_command_button.pack(padx=5, pady=5)
 
         self.console_section_separator = ttk.Separator(self.console_section)
@@ -84,6 +89,9 @@ class App:
         self.command_input.config(state="normal")
         self.send_command_button.config(state="normal")
         self.log_button.config(state="normal")
+
+        self.connected = True
+        self.run_loop = True
 
         self.serial_port_label.config(text=f"Connected to: PORT.{port}")
         self.serial_port_label.config(foreground="green")
@@ -133,13 +141,20 @@ class App:
             except TclError:
                 pass
 
-    def send_command(self, event = None) -> None:
-        self.command = self.command_input.get()
-        self.send_command_raw(self.command)
+    def on_disconnect(self, message: str) -> None:
+        self.serial_port_label.config(text=message)
+        self.serial_port_label.config(foreground="red")
+        self.command_input.config(state="disabled")
+        self.send_command_button.config(state="disabled")
+        self.log_button.config(state="disabled")
+        self.connection_input.config(state="normal")
+        self.connection_submit.config(state="normal")
 
-    def send_command_raw(self, command: Optional[str]) -> None:
+    def send_command(self, command: Optional[str]) -> None:
         if command is None:
             return
+
+        self.command = command
 
         if self.ser is None:
             return
@@ -151,14 +166,14 @@ class App:
         except serial.SerialException as e:
             tkinter.messagebox.showerror("Error", f"Unable to write to serial: {e}")
 
-            self.serial_port_label.config(text="Unable to write")
-            self.serial_port_label.config(foreground="red")
-            self.command_input.config(state="disabled")
-            self.send_command_button.config(state="disabled")
+            self.connected = False
+            self.ser = None
+
+            self.on_disconnect("Failed to write")
 
             return
 
-        self.write_to_cl(f"> {self.command}")
+        self.write_to_cl(f"> {command}")
 
     def loop(self) -> None:
         while self.run_loop:
@@ -168,8 +183,11 @@ class App:
             try:
                 data = self.ser.readline().decode('utf-8').strip()
             except serial.SerialException as e:  
-                tkinter.messagebox.showerror("Error", f"ERROR: Serial communication error. {e}")
                 self.run_loop = False
+                self.connected = False
+
+                self.on_disconnect("Disconnected")
+                tkinter.messagebox.showerror("Error", f"ERROR: Serial communication error. {e}")
 
                 break
             except UnicodeDecodeError as e:
@@ -182,8 +200,9 @@ class App:
     def on_exit(self) -> None:
         self.run_loop = False
 
-        self.send_command("M84")
-        print("Sent M84")
+        if self.connected:
+            self.send_command("M84")
+            print("Sent M84")
 
         if self.ser is not None:
             try:
