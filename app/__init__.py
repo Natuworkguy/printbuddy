@@ -21,6 +21,11 @@ class App:
         self.root.title("PrintBuddy")
         self.root.geometry("1280x720")
 
+        if sys.platform == 'win32':
+            self.root.state('zoomed')
+        else:
+            self.root.attributes('-zoomed', True)
+
         try:
             self.root.iconphoto(True, tk.PhotoImage(file=os.path.join(resource_path("data"), "icon.png")))
         except TclError as e:
